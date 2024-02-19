@@ -1,76 +1,69 @@
 import React, { useEffect } from "react"
-import router from "./router"
-import { AuthProvider } from "./core/contexts/auth"
-import { TokenBalanceProvider } from "./core/contexts/token-balance"
-import AOS from "aos"
-import routerWithoutProvider from "./routerWithoutProvider"
-import {CyberApp} from "@cyberlab/cyber-app-sdk"
-import FirstShow from "./components/FirstShow"
-import ChooseAccountModal from "./components/ChooseAccount"
-import {useLocation} from "react-router-dom"
-import BodyBg from "./assets/images/planet.png"
-import {render} from "@testing-library/react"
-import GlobalContextProvider from "./core/contexts/global"
-// import WalletConnectProvider from "./core/contexts/wallet-connect"
-console.log("debug_v1")
-function App() {
-    const location = useLocation()
-    useEffect(() => {
-        AOS.init({
-            once: true,
-            offset: 0
-        })
-    }, [])
-    useEffect(() => {
-        const bodyElement = document.body
-        if (location.pathname.includes("explore")||location.pathname.includes("lucky-wheel")) {
-            bodyElement.style.backgroundImage = "none"
-        } else {
-            bodyElement.style.backgroundImage=""
-        }
-    }, [location.pathname])
+// import {createWeb3Modal, defaultWagmiConfig} from "@web3modal/wagmi/dist/esm/exports/react"
+import { createWeb3Modal } from "@web3modal/wagmi/react"
+import {
+    arbitrum,
+    avalanche,
+    bsc,
+    fantom,
+    gnosis,
+    mainnet,
+    optimism,
+    polygon,
+    moonbaseAlpha,
+    baseGoerli,
+} from "wagmi/chains"
+import {walletConnectProvider, EIP6963Connector} from "@web3modal/wagmi"
+import {WalletConnectModal} from "@walletconnect/modal"
 
-    // const renderBodyBg = () => {
-    //     return (
-    //         <div className="body=bg">
-    //             <img src={BodyBg} alt="" />
-    //         </div>
-    //     )
-    // }
+import {WagmiConfig, configureChains, createConfig} from "wagmi"
+import {publicProvider} from "wagmi/providers/public"
+import {CoinbaseWalletConnector} from "wagmi/connectors/coinbaseWallet"
+import {InjectedConnector} from "wagmi/connectors/injected"
+import {WalletConnectConnector} from "wagmi/connectors/walletConnect"
+
+
+
+export const chainsA = [mainnet, polygon, avalanche, arbitrum, bsc, optimism, gnosis, fantom, moonbaseAlpha, baseGoerli]
+const projectId = "2d6d4341d352937d613828ea6124a208"
+
+
+const metadata = {
+    name: "MoonFit - Web3 & NFT Lifestyle App",
+    description:
+        "MoonFit is a Web3 & NFT lifestyle app that promotes active living by rewarding users anytime they burn calories through physical activities.",
+    url: "https://app.moonfit.xyz",
+    icons: ["https://prod-cdn.moonfit.xyz/image/original/assets/images/preview/web-preview_1.png"],
+}
+
+const {chains, publicClient} = configureChains(chainsA, [walletConnectProvider({projectId}), publicProvider()])
+
+const wagmiConfig = createConfig({
+    autoConnect: true,
+    connectors: [
+        new WalletConnectConnector({chains, options: {projectId, showQrModal: false, metadata}}),
+        new EIP6963Connector({chains}),
+        new InjectedConnector({chains, options: {shimDisconnect: true}}),
+        new CoinbaseWalletConnector({chains, options: {appName: metadata.name}}),
+    ],
+    publicClient,
+})
+
+createWeb3Modal({
+    wagmiConfig,
+    projectId,
+    chains,
+    enableAnalytics: true, // Optional - defaults to your Cloud configuration
+})
+
+function App() {
+
     return (
-        <AuthProvider>
-            {/* <WalletConnectProvider> */}
-            <GlobalContextProvider>
-            <FirstShow />
-            <ChooseAccountModal />
-            <ScrollTop>
-                <TokenBalanceProvider>{router}</TokenBalanceProvider>
-                <div>{routerWithoutProvider}</div>
-            </ScrollTop>
-            </GlobalContextProvider>
-            {/* </WalletConnectProvider> */}
-        </AuthProvider>
+        <WagmiConfig config={wagmiConfig}>
+            <w3m-button/>
+        </WagmiConfig>
     )
 }
 
-const ScrollTop = ({ children }) => {
-    const location = useLocation();
-    useEffect(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        const body = document.querySelector("body")
-        let timer = null
-        if (body && location.pathname.includes('summer-fitsnap-challenge')) {
-            timer = setTimeout(() => {
-                body.style.backgroundColor = "#f3d9b1"
-            }, 1000)
-        } else {
-            body.style.backgroundColor = "#020722"
-        }
-        return () => {
-            clearTimeout(timer)
-        }
-    }, [location]);
-    return children
-}
 
 export default App
